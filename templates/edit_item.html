@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Item</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e8ecf1;
+            text-align: center;
+            margin: 0;
+        }
+        .top-navbar {
+            background: #4169E1;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            height: 64px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 20px;
+            width: 120px;
+        }
+        .nav-logo img {
+            height: 140px; /* Counteract large transparent margins in the PNG */
+            transform: scale(1.2);
+        }
+        .nav-logo svg { width: 40px; height: 40px; }
+        .nav-tabs-custom { display: flex; gap: 8px; flex: 1; justify-content: center; }
+        .nav-tab {
+            background: #fff; color: #333; border: none; padding: 8px 32px;
+            border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .nav-tab:hover { background: #e0e7ff; color: #333; text-decoration: none; }
+        .nav-tab.active { background: #fff; color: #4169E1; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+        .nav-right label { color: #fff; font-size: 14px; font-weight: 500; white-space: nowrap; }
+        .nav-right input { width: 100px; padding: 5px 10px; border: none; border-radius: 5px; font-size: 14px; }
+        .container { margin-top: 20px; }
+        .card { border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px; }
+        .error-message {
+            color: #d32f2f; font-size: 14px; font-weight: bold;
+            background: #ffebee; border: 1px solid #d32f2f;
+            padding: 10px; border-radius: 4px; margin-top: 5px;
+            display: none; width: 100%; text-align: center;
+        }
+        .success-message {
+            color: #2fd345; font-size: 14px; font-weight: bold;
+            background: #ebfff3; border: 1px solid #2fd345;
+            padding: 10px; border-radius: 4px; margin-top: 5px;
+            display: none; width: 100%; text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-navbar">
+        <div class="nav-logo">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
+        </div>
+        <div class="nav-tabs-custom">
+            <a href="/" class="nav-tab">POS</a>
+            <a href="/items" class="nav-tab active">Items</a>
+            <a href="/receipts" class="nav-tab">Orders</a>
+            <a href="/" class="nav-tab">Report</a>
+        </div>
+        <div class="nav-right">
+            <label>Seller Code:</label>
+            <input type="text" id="sellerCode" placeholder="">
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <h4 class="text-center">Edit Item</h4>
+                    <form action="{{ url_for('add_item') }}" data-id="{{ item.id }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{item.name}}" required>
+                        </div>
+                        <p class="success-message" id="success"></p>
+                        <p class="error-message" id="error"></p>
+                        <button type="submit" class="btn btn-success w-100" onclick="save(event, {{item.id}})">Save</button>
+                    </form>
+                    <a href="{{ url_for('get_items') }}" class="btn btn-secondary w-100 mt-2">Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+    // Seller code persistence
+    document.addEventListener("DOMContentLoaded", function () {
+        const sellerCodeInput = document.getElementById("sellerCode");
+        const stored = localStorage.getItem("sellerCode");
+        if (stored) sellerCodeInput.value = stored;
+        sellerCodeInput.addEventListener("input", function () {
+            localStorage.setItem("sellerCode", this.value);
+        });
+    });
+
+    function showMessage(id, message) {
+        const el = document.getElementById(id);
+        el.innerText = message;
+        el.style.display = "block";
+    }
+
+    function hideMessage(id) {
+        const el = document.getElementById(id);
+        if (el) { el.innerText = ""; el.style.display = "none"; }
+    }
+
+    function save(e, itemId) {
+        e.preventDefault();
+        document.querySelectorAll(".btn").forEach(btn => btn.disabled = true);
+        const name = document.getElementById("name").value;
+        hideMessage("error");
+        if (name == "") {
+            showMessage("error", "Please enter name.");
+            document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+        } else {
+            fetch("/edit_item/"+itemId, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 'name':name })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(result => {
+                if (result.status != 200) {
+                    showMessage('error', result.body.message);
+                } else {
+                    showMessage("success", "Item updated");
+                }
+                document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+            });
+        }
+    }
+</script>
+</body>
+</html>

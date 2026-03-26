@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Billing</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 16px;
+            font-weight: bold;
+            background: #ffebee;
+            border: 1px solid #d32f2f;
+            padding: 20px;
+            border-radius: 4px;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand mx-auto" href="/">Billing</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <!-- Expired Message Section -->
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <h4 class="text-center">Your Application Has Expired</h4>
+                    <div class="error-message">
+                        <p><strong>Error:</strong> The application has exceeded the trial period and is no longer accessible.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

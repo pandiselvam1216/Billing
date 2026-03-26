@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Billing</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .btn-custom {
+            width: 100%;
+        }
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-align: left !important;
+        }
+        @media print {
+            .hide-on-print {
+                display: none;
+            }
+            #billing {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .key {
+            padding: 15px;
+            font-size: 20px;
+            text-align: center;
+            background: #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .key:hover {
+            background: #ccc;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .remove-btn:hover {
+            background: #c82333;
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 14px;
+            font-weight: bold;
+            background: #ffebee;
+            border: 1px solid #d32f2f;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: none;
+            width: 100%;
+            text-align: center;
+        }
+        .success-message {
+            color: #2fd345;
+            font-size: 14px;
+            font-weight: bold;
+            background: #ebfff3;
+            border: 1px solid #2fd345;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: none;
+            width: 100%;
+            text-align: center;
+        }
+        .block {
+            min-height: 500px;
+        }
+        @media print {
+            @page {
+                margin: 0;  /* Remove default margins */
+                size: auto;  /* Adjust to fit content */
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            /* Hide headers, footers, and unwanted elements */
+            body::before,
+            body::after {
+                display: none;
+            }
+        }
+        .report-table-container {
+            max-height: 500px; /* Set height for scroll */
+            overflow-y: auto; /* Enable vertical scroll */
+        }
+        .ui-autocomplete {
+            text-align: left; /* Align text to the left */
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        .ui-menu-item {
+            text-align: left; /* Ensures each item is aligned properly */
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand mx-auto" href="/">Billing</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <!-- Order Form Section -->
+            <div class="col-md-6">
+                <div class="block card p-4">
+                    <h4 class="text-center">Place Order</h4>
+                    <form id="orderForm">
+                        <!-- <div class="mb-3">
+                            <input type="text" id="orderId" class="form-control" placeholder="Order ID" readonly>
+                        </div> -->
+                        <div class="mb-3">
+                            <input type="text" id="sellerCode" class="form-control" placeholder="Seller Code">
+                        </div>
+                        <div class="mb-3">
+                            <input type="tel" id="mobile" class="form-control" placeholder="Mobile Number">
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" id="customerName" class="form-control" placeholder="Customer Name">
+                            <input type="hidden" id="customerId">
+                        </div>
+                        <div class="table-container">
+                            <h2 class="text-center">Order Items</h2>
+                            <table class="table table-striped table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Qty</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orderTable"></tbody>
+                            </table>
+                        </div>
+
+                        <p class="error-message" id="orderError"></p>
+                        <div class="mb-3">
+                            <button class="save-order btn btn-primary w-100" onclick="saveOrder()">Save Order</button>
+                        </div>
+                        <div class="mb-3">
+                            <a href="/" class="btn btn-danger w-100">Clear</a>
+                        </div>
+                        <div class="mb-3">
+                            <button class="btn btn-success w-100" onclick="openReportPopup()">Report</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Billing Section -->
+            <div class="col-md-6">
+                <div class="block card p-4">
+                    <h4 class="text-center">Billing</h4>
+                    <h2 class="text-center">Enter Item ID</h2>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <div class="input-box me-2" id="itemInput">_</div>
+                    </div>
+                    <div class="keypad">
+                        <div class="key" onclick="appendDigit(1)">1</div>
+                        <div class="key" onclick="appendDigit(2)">2</div>
+                        <div class="key" onclick="appendDigit(3)">3</div>
+                        <div class="key" onclick="appendDigit(4)">4</div>
+                        <div class="key" onclick="appendDigit(5)">5</div>
+                        <div class="key" onclick="appendDigit(6)">6</div>
+                        <div class="key" onclick="appendDigit(7)">7</div>
+                        <div class="key" onclick="appendDigit(8)">8</div>
+                        <div class="key" onclick="appendDigit(9)">9</div>
+                        <div class="key" data-bs-toggle="modal" data-bs-target="#helpModal"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                          </svg></div>
+                        <div class="key" onclick="appendDigit(0)">0</div>
+                        <div class="key bg-danger text-white" onclick="clearInput()">C</div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <p class="error-message" id="itemError"></p>
+                        <!-- <button class="btn btn-success" onclick="openQuantityPopup()">Add item</button> -->
+                        <button class="btn btn-success w-100" onclick="openQuantityPopup()">Add item</button>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="col-md-4">
+                <div class="block card p-4">
+                    <div id="bill-container">
+                    </div>
+                </div>
+            </div> -->
+        </div>
+    </div>
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Item List</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container">
+                        <ul id="itemList" class="list-group"></ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="/items" class="btn btn-danger">Edit</a>
+                    <button class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quantity & Price Modal -->
+    <div class="modal fade" id="quantityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enter Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Item: <span id="popupItemName"></span></p>
+                    <label>Quantity:</label>
+                    <input type="text" id="quantityInput" class="form-control" onclick="setActiveField('quantityInput')" oninput="validateDecimalInput(this)" onkeydown="handleKeydown(event)">
+                    <label>Price:</label>
+                    <input type="text" id="priceInput" class="form-control" onclick="setActiveField('priceInput')" oninput="validateDecimalInput(this)" onkeydown="handleKeydown(event)">
+                    <div class="keypad">
+                        <div class="key" onclick="appendNum(1)">1</div>
+                        <div class="key" onclick="appendNum(2)">2</div>
+                        <div class="key" onclick="appendNum(3)">3</div>
+                        <div class="key" onclick="appendNum(4)">4</div>
+                        <div class="key" onclick="appendNum(5)">5</div>
+                        <div class="key" onclick="appendNum(6)">6</div>
+                        <div class="key" onclick="appendNum(7)">7</div>
+                        <div class="key" onclick="appendNum(8)">8</div>
+                        <div class="key" onclick="appendNum(9)">9</div>
+                        <div class="key" onclick="appendNum('.')">.</div>
+                        <div class="key" onclick="appendNum(0)">0</div>
+                        <div class="key" onclick="clearField()">C</div>
+                    </div>
+                    <p class="error-message" id="itemPopupError"></p>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="submitItemDetails()">Submit</button>
+                    <button class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Quantity & Price Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Enter Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>Date:</label>
+                    <input type="text" id="dateInput" class="form-control" readonly>
+                    <p class="error-message" id="dayReportError"></p>
+                    <p class="success-message" id="dayReportSuccess"></p>
+                    <p><strong>Amount:</strong> <span id="amountDisplay">-</span></p>
+                    <div class="report-table-container table-container">
+                        <h2 class="text-center">Billwise report</h2>
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>BLNO</th>
+                                    <th>ITM</th>
+                                    <th>TAX</th>
+                                    <th>DISC</th>
+                                    <th>AMOUNT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billwiseReportTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="loadingSpinner" class="text-center d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-success" onclick="printDayReport()">Print Billwise Report</button>
+                    <button class="btn btn-success" onclick="fetchDayReport()">View Billwise Report</button>
+                    <button class="btn btn-danger" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pikaday.css') }}">
+    <script src="{{ url_for('static', filename='js/pikaday.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css') }}">
+    <script src="{{ url_for('static', filename='js/code.jquery.com/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/code.jquery.com/ui/1.12.1/jquery-ui.min.js') }}"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let dateInput = document.getElementById("dateInput");
+
+            let picker = new Pikaday({
+                field: dateInput,
+                format: "DD-MM-YYYY",
+                defaultDate: new Date(),
+                setDefaultDate: true,
+                toString(date, format) {
+                    const day = ('0' + date.getDate()).slice(-2);
+                    const month = ('0' + (date.getMonth() + 1)).slice(-2);
+                    const year = date.getFullYear();
+                    return `${day}-${month}-${year}`;
+                }
+            });
+
+            // Set the formatted default date manually
+            dateInput.value = picker.toString(new Date());
+        });
+
+        $(document).ready(function () {
+            $("#mobile").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: "/search_customer",
+                        type: "GET",
+                        data: { mobile: request.term },
+                        dataType: "json",
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.mobile + " - " + item.customer_name,
+                                    value: item.mobile,
+                                    customer_name: item.customer_name,
+                                    customer_id: item.id  // Store customer ID
+                                };
+                            }));
+                        }
+                    });
+                },
+                select: function (event, ui) {
+                    $("#mobile").val(ui.item.value);
+                    $("#customerName").val(ui.item.customer_name);
+                    $("#customerId").val(ui.item.customer_id);  // Store ID in hidden field
+                    return false;
+                }
+            });
+        });
+
+        function fetchDayReport() {
+            document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = true);
+            hideMessage("dayReportError");
+            hideMessage("dayReportSuccess");
+            const tableBody = document.getElementById("billwiseReportTable");
+            tableBody.innerHTML = "";
+            let selectedDate = document.getElementById("dateInput").value;
+
+            if (!selectedDate) {
+                showError("dayReportError", "Please select a date.");
+                return;
+            }
+
+            // Convert YYYY-MM-DD to DD-MM-YYYY format for the API
+            let formattedDate = selectedDate;
+
+            // Flask API URL
+
+            fetch("/get-day-report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ date: formattedDate }) // Sending date in DD-MM-YYYY format
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    amountDisplay.textContent = `₹${data.total}`; // Display the amount
+                    if (data.total != 0.00) {
+                        updateBillwiseReport(data.report)
+                    }
+                } else {
+                    showError("dayReportError", data.message);
+                }
+                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+            })
+            .catch(error => {
+                showError("dayReportError", "Error fetching data. Please check your connection.");
+                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+            });
+        }
+
+    function printDayReport() {
+        document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = true);
+        hideMessage("dayReportError");
+        hideMessage("dayReportSuccess");
+        let selectedDate = document.getElementById("dateInput").value;
+        let amountDisplay = document.getElementById("amountDisplay");
+
+        // errorMessage.textContent = ""; // Clear previous errors
+        amountDisplay.textContent = "-"; // Reset amount display
+
+        if (!selectedDate) {
+            showError("dayReportError", "Please select a date.");
+            return;
+        }
+
+        // Convert YYYY-MM-DD to DD-MM-YYYY format for the API
+        let formattedDate = selectedDate;
+
+        fetch("/print-day-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: formattedDate }) // Sending date in DD-MM-YYYY format
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage("dayReportSuccess", "Report generated.");
+            } else {
+                showError("dayReportError", data.message);
+            }
+            document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+        })
+        .catch(error => {
+            showError("dayReportError", "Error fetching data. Please check your connection.");
+            document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+        });
+    }
+
+        let items = [];
+        let order = [];
+        let inputId = "";
+
+        async function loadItems() {
+            const response = await fetch("/get-items-list");
+            items = await response.json();
+            updateHelpPopup();
+
+        }
+
+        function appendDigit(digit) {
+            inputId += digit;
+            updateInputDisplay();
+        }
+
+        function updateInputDisplay() {
+            document.getElementById("itemInput").innerText = inputId || "_";
+        }
+
+        function clearInput() {
+            document.getElementById("quantityInput").value = "";
+            document.getElementById("priceInput").value = "";
+            setActiveField('quantityInput')
+            inputId = "";
+            updateInputDisplay();
+        }
+
+        function openQuantityPopup() {
+            hideError("orderError");
+            hideError("itemError");
+            if (!inputId) {
+                showError("itemError", "Enter a valid item ID.");
+                return;
+            }
+
+            const item = items.find(i => i.id == inputId);
+            if (!item) {
+                showError("itemError", "Item not found.");
+                clearInput();
+                return;
+            }
+            document.getElementById("popupItemName").innerText = item.name;
+            new bootstrap.Modal(document.getElementById('quantityModal')).show();
+        }
+
+        function openReportPopup() {
+            event.preventDefault()
+            hideError("orderError");
+            hideError("itemError");
+            hideMessage("dayReportError");
+            hideMessage("dayReportSuccess");
+            const tableBody = document.getElementById("billwiseReportTable");
+            tableBody.innerHTML = "";
+            let selectedDate = document.getElementById("dateInput").value;
+            let amountDisplay = document.getElementById("amountDisplay");
+            amountDisplay.textContent = "-"; // Reset amount display
+            new bootstrap.Modal(document.getElementById('reportModal')).show();
+        }
+
+        function closeQuantityPopup() {
+            bootstrap.Modal.getInstance(document.getElementById('quantityModal')).hide();
+        }
+
+        function submitItemDetails() {
+
+            const quantity = parseFloat(document.getElementById("quantityInput").value);
+            const price = parseFloat(document.getElementById("priceInput").value);
+
+            if (isNaN(quantity) || isNaN(price)) {
+
+                showError("itemPopupError", "Please enter both quantity and price.");
+                return;
+            }
+            const total = quantity * price;
+            const itemName = document.getElementById("popupItemName").innerText;
+
+            let existingItem = order.find(item => item.id === inputId && item.price === price);
+
+            if (existingItem) {
+                // If the item with the same price exists, increase the quantity
+                existingItem.quantity += quantity;
+                existingItem.total = existingItem.quantity * existingItem.price;
+            } else {
+                // Otherwise, add a new row
+                order.push({ id: inputId, name: itemName, quantity, price, total });
+            }
+
+            updateOrderList();
+            closeQuantityPopup();
+            clearInput();
+        }
+
+        function updateOrderList() {
+            const tableBody = document.getElementById("orderTable");
+            tableBody.innerHTML = order.map((item, index) => `
+                <tr>
+                    <td>${item.name}</td>
+                    <td>
+                        ${item.quantity}
+                    </td>
+                    <td>${item.price}</td>
+                    <td>${(item.quantity * item.price).toFixed(2)}</td>
+                    <td><button class="remove-btn" onclick="removeItem(${index})">Remove</button></td>
+                </tr>
+            `).join("");
+        }
+        function updateBillwiseReport(report) {
+            const tableBody = document.getElementById("billwiseReportTable");
+            const htmlText = Object.values(report.list).map(item => `
+                <tr>
+                    <td>${item.bill_no}</td>
+                    <td>${Array.isArray(item.items)
+                        ? item.items.map(subItem => `<div>${subItem}</div>`).join('')
+                        : item.items}</td>
+                    <td>${item.tax}</td>
+                    <td>${item.discount}</td>
+                    <td>${item.amount}</td>
+                </tr>
+            `).join("");
+            const totalRow = `
+                <tr>
+                    <th>Total</th>
+                    <th>${report.total.items}</th>
+                    <th>${report.total.tax}</th>
+                    <th>${report.total.discount}</th>
+                    <th>${report.total.amount}</th>
+                </tr>
+            `;
+            tableBody.innerHTML = htmlText + totalRow;
+        }
+        function adjustQuantity(index, change) {
+            if (order[index].quantity + change > 0) {
+                order[index].quantity += change;
+                updateOrderList();
+            }
+        }
+
+        function removeItem(index) {
+            order.splice(index, 1);
+            updateOrderList();
+        }
+
+
+        function appendNum(num) {
+            let field = document.getElementById(activeField);
+            field.value += num;
+
+        }
+
+        function clearField(field) {
+            document.getElementById(activeField).value = "";
+        }
+        function validateNumberInput(input) {
+            input.value = input.value.replace(/[^0-9]/g, '');
+        }
+
+        function validateDecimalInput(input) {
+            input.value = input.value.replace(/[^0-9.]/g, '');
+            if ((input.value.match(/\./g) || []).length > 1) {
+                input.value = input.value.slice(0, -1); // Remove extra decimal points
+            }
+        }
+        function handleKeydown(event) {
+            if (event.key === "Enter") {
+                submitItemDetails();
+            }
+        }
+        let activeField = "quantityInput"; // Default to quantity
+
+        function setActiveField(field) {
+            activeField = field;
+            document.getElementById("quantityInput").classList.remove("active");
+            document.getElementById("priceInput").classList.remove("active");
+            document.getElementById(field).classList.add("active");
+        }
+
+
+        function showHelpPopup() {
+            document.getElementById("helpPopup").style.display = "block";
+        }
+
+        function closeHelpPopup() {
+            document.getElementById("helpPopup").style.display = "none";
+        }
+
+        function updateHelpPopup() {
+            const itemList = document.getElementById("itemList");
+            itemList.innerHTML = "";
+            items.forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = `${item.id} => ${item.name}`;
+                li.classList.add("list-group-item"); // Add your desired class
+                itemList.appendChild(li);
+            });
+        }
+
+        function saveOrder() {
+            document.querySelectorAll(".save-order").forEach(btn => btn.disabled = true);
+            event.preventDefault()
+            if (order.length === 0) {
+                showError("orderError", "No items in order.");
+                document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+            } else {
+                const sellerCode = document.getElementById("sellerCode").value;
+                if (sellerCode == "") {
+                    showError("orderError", "Please enter seller code.");
+                    document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+                } else {
+                    const customerName = document.getElementById("customerName").value;
+                    const mobile = document.getElementById("mobile").value;
+                    hideError("orderError");
+                    fetch("/save_order", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 'items':order, sellerCode, customerName, mobile })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        window.location.reload()
+                    });
+                }
+            }
+        }
+        function generateBill() {
+            const billDetails = document.getElementById("bill-details");
+            billDetails.innerHTML = ""; // Clear previous bill details
+            let total = 0;
+
+            order.forEach(item => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td>${item.quantity}</td>
+                    <td>₹${item.price}</td>
+                    <td>₹${item.quantity * item.price}</td>
+                `;
+                billDetails.appendChild(row);
+                total += item.quantity * item.price;
+            });
+
+            document.getElementById("total-amount").innerText = total;
+            printBill();
+        }
+
+        function printBill() {
+            const billContent = document.getElementById("bill-container").innerHTML;
+            const originalContent = document.body.innerHTML;
+
+            document.body.innerHTML = billContent;
+            window.print();
+            document.body.innerHTML = originalContent;
+            location.reload(); // Refresh to restore original content
+        }
+
+        function showError(id, message) {
+            const errorElement = document.getElementById(id);
+            errorElement.innerText = message;
+            errorElement.style.display = "block";
+        }
+
+        function showMessage(id, message) {
+            const messageElement = document.getElementById(id);
+            messageElement.innerText = message;
+            messageElement.style.display = "block";
+        }
+
+        function hideMessage(id, message) {
+            const messageElement = document.getElementById(id);
+            messageElement.innerText = "";
+            messageElement.style.display = "none";
+        }
+
+        loadItems();
+
+        function printReceipt() {
+            const billContainer = document.getElementById("bill-container");
+
+            if (!billContainer) {
+                console.error("Bill container not found!");
+                return;
+            }
+
+            const billContent = billContainer.innerHTML;  // Get the bill content
+            const originalContent = document.body.innerHTML;  // Store original page content
+
+            document.body.innerHTML = `<div>${billContent}</div>`;  // Replace page with bill content
+            window.print();
+        }
+
+        function hideError(id) {
+            const errorElement = document.getElementById(id);
+            errorElement.innerText = "";
+            errorElement.style.display = "none";
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+        // Prefill seller code from local storage
+        const sellerCodeInput = document.getElementById("sellerCode");
+        const storedSellerCode = localStorage.getItem("sellerCode");
+        if (storedSellerCode) {
+            sellerCodeInput.value = storedSellerCode;
+        }
+
+        // Update local storage when seller code changes
+        sellerCodeInput.addEventListener("input", function () {
+            localStorage.setItem("sellerCode", this.value);
+        });
+    });
+    </script>
+</body>
+</html>

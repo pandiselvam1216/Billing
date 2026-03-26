@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Add Item</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .btn-custom {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand mx-auto" href="/">Billing</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <h4 class="text-center">Edit Item</h4>
+                    <form action="{{ url_for('add_item') }}" data-id="{{ item.id }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Item Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{item.name}}" required>
+                        </div>
+                        <p class="success-message" id="success"></p>
+                        <p class="error-message" id="error"></p>
+                        <button type="submit" class="btn btn-success w-100" onclick="save({{item.id}})">Save</button>
+                    </form>
+                    <a href="{{ url_for('get_items') }}" class="btn btn-secondary w-100 mt-2">Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+<script>
+    function save(itemId) {
+        event.preventDefault()
+        document.querySelectorAll(".btn").forEach(btn => btn.disabled = true);
+        const name = document.getElementById("name").value;
+        hideMessage("error")
+        if (name == "") {
+            showMessage("error", "Please enter name.");
+        } else {
+            fetch("/edit_item/"+itemId, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 'name':name })
+            })
+            .then(response => response.json().then(data => ({ status: response.status, body: data })))
+            .then(result => {
+                console.log(result)
+                if (result.status != 200) {
+                    showMessage('error', result.body.message);  // Show error if name already exists
+                } else {
+                    showMessage("success", "Item updated")
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+        document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
+    }
+</script>
+</html>

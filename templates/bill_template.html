@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt</title>
+    <style>
+        body {
+            font-family: 'Verdana', monospace;
+        }
+        .receipt {
+            width: 400px;
+            padding: 20px;
+            margin: auto;
+        }
+        hr {
+            border: none;
+            border-top: 1px dashed black;
+            margin: 8px 0px;
+        }
+        .header {
+            text-align: center;
+        }
+        .header p {
+            margin: 0px;
+        }
+        .header h2 {
+            margin: 0px;
+        }
+        .details {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .details p {
+            margin: 0px;
+        }
+        p {
+            font-size: 14px;
+        }
+        .store_name {
+            font-size: 24px;
+        }
+        .date-time {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center; /* Ensures vertical alignment */
+            white-space: nowrap; /* Prevents wrapping */
+        }
+        .date-time p {
+            margin: 0;
+            font-size: 14px;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Ensures uniform column width */
+        }
+        .items-table th {
+            padding: 5px;
+            border-bottom: 1px dashed black;
+            /* width: 20%; */
+        }.items-table td {
+            padding: 5px;
+            width: 20%; /* Ensures all columns have equal width */
+        }
+        .items-table th {
+            font-weight: bold;
+            text-align: center;
+        }
+        .items-table td:nth-child(3),
+        .items-table td:nth-child(4),
+        .items-table td:nth-child(5) {
+            text-align: right; /* Align numerical values to the right */
+        }
+        
+        .text-item {
+            font-size: 15px !important;
+        }
+
+
+        .tax-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed; /* Ensures uniform column width */
+        }
+        .tax-table th {
+            font-size: 13px;
+            padding: 5px;
+            border-bottom: 1px dashed black;
+            /* width: 20%; */
+        }.tax-table td {
+            font-size: 13px;
+            padding: 5px;
+            width: 20%; /* Ensures all columns have equal width */
+        }
+        .tax-table th {
+            font-weight: bold;
+            text-align: center;
+        }
+        .total-section {
+            margin-top: 10px;
+            text-align: right;
+        }
+        .price {
+            text-align: right;
+        }
+        .print-btn {
+            display: block;
+            width: 344px;
+            padding: 8px;
+            margin: 10px auto;
+            cursor: pointer;
+            text-align: center;
+        }
+        @media print {
+            .print-btn {
+                display: none;
+            }
+            @page {
+                margin: 0;
+                size: auto;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+        .smaller-font {
+            font-size: 13px;
+        }
+        .med-font {
+            font-size: 13px;
+        }
+        /* Custom column widths */
+        .si-col { width: 8%; text-align: center; }
+        .item-col { width: 35%; }
+        .qty-col { width: 25%; text-align: center; }
+        .rate-col, .amount-col { width: 20%; text-align: right; }
+
+
+        .tax-col { width: 10%; text-align: center; }
+        .taxable-val-col { width: 25%; }
+        .cgst-col { width: 15%; text-align: center; }
+        .sgst-col { width: 15%; text-align: center; }
+        .tax-amount-col { width: 20%; text-align: right; }
+        .date-time {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .date-time p {
+            margin: 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <h2 class="store_name">Pakeeza Collection BTM</h2>
+            <p class="smaller-font text-item">18, 1st Cross Rd, OLd Gurappanapalya</p>
+            <p class="smaller-font">Jayanagara 9th Block, S.G. Palya, Bengaluru, Karnataka 560029</p>
+        </div>
+        <br>
+        <div class="details">
+            <table style="width: 100%;">
+                <tr>
+                    <td style="text-align: left; font-size: 13px;"><span class="smaller-font"><strong>MOBILE:</strong>8431795196</span></td>
+                </tr>
+            </table>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="text-align: left; font-size: 13px;"><span class="smaller-font"><strong>GSTIN:</strong> 290IWPS3898Q1Z3</span></td>
+                </tr>
+            </table>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="text-align: left; font-size: 13px;"><span><strong>BILL NO:</strong> {{ receipt.order_id }}</span></td>
+                </tr>
+            </table>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="text-align: left; font-size: 13px;"><strong>DATE:</strong> {{ receipt.date }}</td>
+                    <td style="text-align: right; font-size: 13px;"><span><strong>TIME:</strong> {{ receipt.time }}</span></td>
+                </tr>
+            </table>
+            <table style="width: 100%;">
+                <tr>
+                    <td style="text-align: left; font-size: 13px;"><span><strong>{{ receipt.seller_code }}</strong></span></td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th class="si-col">SI</th>
+                    <th class="item-col">ITEM NAME</th>
+                    <th class="qty-col">QTY</th>
+                    <th class="rate-col">RATE</th>
+                    <th class="amount-col">AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in receipt['items'] %}
+                <tr>
+                    <td class="si-col">{{ loop.index }}</td>
+                    <td class="item-col">{{ item.name }}</td>
+                    <td class="qty-col">{{ item.quantity }}</td>
+                    <td class="rate-col price">{{ item.price }}</td>
+                    <td class="amount-col price">{{ item.total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <hr>
+        <!-- <div class="date-time">
+            <p>TOTAL ITEM(S):{{ receipt.total_items }}/QTY:{{ receipt.total_quantity }}</p>
+            <p><strong>₹ {{ receipt.total }}</strong></p>
+        </div> -->
+        <table style="width: 100%;">
+            <tr>
+                <td style="text-align: left; font-size: 14px;"><span>TOTAL ITEM(S):{{ receipt.total_items }}/QTY:{{ receipt.total_quantity }}</span></td>
+                <td style="text-align: right; font-size: 14px;"><span><strong>₹ {{ receipt.total }}</strong></span></td>
+            </tr>
+        </table>
+        <hr>
+        <table class="tax-table">
+            <thead>
+                <tr>
+                    <th class="tax-col">TAX %</th>
+                    <th class="taxable-val-col">TAXABLE VAL</th>
+                    <th class="cgst-col">CGST</th>
+                    <th class="sgst-col">SGST</th>
+                    <th class="tax-amount-col">TAX AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="tax-col"> </td>
+                    <td class="taxable-val-col"> </td>
+                    <td class="cgst-col">(2.50%)</td>
+                    <td class="sgst-col">(2.50%)</td>
+                    <td class="tax-amount-col"> </td>
+                </tr>
+                <tr>
+                    <td class="tax-col">5.00</td>
+                    <td class="taxable-val-col">{{ receipt.subtotal }}</td>
+                    <td class="cgst-col">{{ receipt.cgst }}</td>
+                    <td class="sgst-col">{{ receipt.sgst }}</td>
+                    <td class="tax-amount-col">{{ receipt.tax }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <hr>
+        <table style="width: 100%;">
+            <tr>
+                <td style="text-align: left; font-size: 18px;"><strong>TOTAL:</strong></td>
+                <td style="text-align: right; font-size: 18px;"><strong>₹ {{ receipt.total }}</strong></td>
+            </tr>
+        </table>
+        <hr>
+        <p class="smaller-font" style="text-align: center;">NOTE: AFTER CUTTING NO EXCHANGE</p>
+        <p class="smaller-font" style="text-align: center;">COTTON AND LINEN CLOTH WASH BEFORE STITCH</p>
+        <p class="smaller-font" style="text-align: center;">COLOUR AND PRINT NO GUARANTEE</p>
+        <p class="smaller-font" style="text-align: center;">THANK YOU, VISIT AGAIN</p>
+    </div>
+</body>
+</html>

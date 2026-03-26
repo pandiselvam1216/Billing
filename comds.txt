@@ -1,0 +1,25 @@
+pyinstaller --clean --onefile --windowed  --add-data "templates;templates" --add-data "static;static" --hidden-import werkzeug app.py
+
+
+https://wkhtmltopdf.org/downloads.html
+
+https://zadig.akeo.ie/
+
+
+Download and install GTK Runtime:
+
+Go to https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases
+
+Download the latest "gtk3-runtime-x.xx.x-x64.exe" (if you have a 64-bit system).
+
+Install it (use default settings).
+
+Add GTK to System Path:
+
+Open File Explorer, go to C:\Program Files\GTK3-Runtime Win64\bin (or wherever you installed it).
+
+Copy the full path.
+
+Press Win + R, type sysdm.cpl, go to Advanced → Environment Variables.
+
+Find Path, click Edit, then New, and paste the copied path.
