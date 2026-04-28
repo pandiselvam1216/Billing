@@ -14,8 +14,12 @@ from flask_migrate import Migrate
 app = Flask(__name__)
 # CORS(app)  # Allow all origins
 
+import os
 # Configure SQLite database
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///billing.db"
+if os.environ.get('VERCEL') or os.environ.get('AWS_EXECUTION_ENV'):
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:////tmp/billing.db"
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///billing.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
