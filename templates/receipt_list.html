@@ -81,35 +81,12 @@
                                     <th>Action</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {% for receipt in receipts %}
-                                <tr>
-                                    <td>{{ receipt.id }}</td>
-                                    <td>{{ receipt.customer_name }}</td>
-                                    <td>{{ receipt.mobile }}</td>
-                                    <td>{{ receipt.total }}</td>
-                                    <td>{{ receipt.timestamp.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        <a href="/bill/{{ receipt.id }}" class="btn btn-primary btn-sm">View</a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                            <tbody id="receiptsTableBody">
+                                <!-- Populated by JS -->
                             </tbody>
                         </table>
                         <div class="pagination d-flex justify-content-center mt-3">
-                            <nav>
-                                <ul class="pagination">
-                                    <li class="page-item {% if not receipts.has_prev %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('get_receipts', page=receipts.prev_num) }}">Previous</a>
-                                    </li>
-                                    <li class="page-item disabled">
-                                        <span class="page-link">Page {{ receipts.page }} of {{ receipts.pages }}</span>
-                                    </li>
-                                    <li class="page-item {% if not receipts.has_next %}disabled{% endif %}">
-                                        <a class="page-link" href="{{ url_for('get_receipts', page=receipts.next_num) }}">Next</a>
-                                    </li>
-                                </ul>
-                            </nav>
+                            <!-- Pagination hidden for local storage -->
                         </div>
                     </div>
                 </div>
@@ -118,6 +95,33 @@
     </div>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const tbody = document.getElementById("receiptsTableBody");
+            let receipts = JSON.parse(localStorage.getItem("receipts")) || [];
+            
+            // Sort receipts by timestamp descending
+            receipts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            if (receipts.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='6'>No orders found.</td></tr>";
+            } else {
+                tbody.innerHTML = receipts.map(receipt => {
+                    let d = new Date(receipt.timestamp);
+                    let formattedDate = ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+                    return `
+                    <tr>
+                        <td>${receipt.id}</td>
+                        <td>${receipt.customer_name}</td>
+                        <td>${receipt.mobile}</td>
+                        <td>${receipt.total}</td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <a href="/bill/${receipt.id}" class="btn btn-primary btn-sm">View</a>
+                        </td>
+                    </tr>
+                    `;
+                }).join('');
+            }
+            
             const sellerCodeInput = document.getElementById("sellerCode");
             const stored = localStorage.getItem("sellerCode");
             if (stored) sellerCodeInput.value = stored;

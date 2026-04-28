@@ -545,27 +545,27 @@
         $(document).ready(function () {
             $("#mobile").autocomplete({
                 source: function (request, response) {
-                    $.ajax({
-                        url: "/search_customer",
-                        type: "GET",
-                        data: { mobile: request.term },
-                        dataType: "json",
-                        success: function (data) {
-                            response($.map(data, function (item) {
-                                return {
-                                    label: item.mobile + " - " + item.customer_name,
-                                    value: item.mobile,
-                                    customer_name: item.customer_name,
-                                    customer_id: item.id
-                                };
-                            }));
+                    let term = request.term.toLowerCase();
+                    let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+                    let customers = [];
+                    let seen = new Set();
+                    receipts.forEach(r => {
+                        if (r.mobile && r.mobile.toLowerCase().includes(term)) {
+                            if (!seen.has(r.mobile)) {
+                                seen.add(r.mobile);
+                                customers.push({
+                                    label: r.mobile + (r.customer_name ? " - " + r.customer_name : ""),
+                                    value: r.mobile,
+                                    customer_name: r.customer_name || ""
+                                });
+                            }
                         }
                     });
+                    response(customers);
                 },
                 select: function (event, ui) {
                     $("#mobile").val(ui.item.value);
                     $("#customerName").val(ui.item.customer_name);
-                    $("#customerId").val(ui.item.customer_id);
                     return false;
                 }
             });
@@ -577,74 +577,69 @@
             hideMessage("dayReportSuccess");
             const tableBody = document.getElementById("billwiseReportTable");
             tableBody.innerHTML = "";
-            let selectedDate = document.getElementById("dateInput").value;
+            let selectedDateStr = document.getElementById("dateInput").value;
             let amountDisplay = document.getElementById("amountDisplay");
 
-            if (!selectedDate) {
+            if (!selectedDateStr) {
                 showError("dayReportError", "Please select a date.");
                 document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
                 return;
             }
 
-            let formattedDate = selectedDate;
+            let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+            let [d, m, y] = selectedDateStr.split('-');
+            let selectedDate = new Date(`${y}-${m}-${d}`);
+            let nextDate = new Date(selectedDate);
+            nextDate.setDate(selectedDate.getDate() + 1);
+            let today = new Date();
+            today.setHours(0,0,0,0);
+            
+            if (selectedDate > today) {
+                showError("dayReportError", "Future dates are not allowed");
+                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+                return;
+            }
 
-            fetch("/get-day-report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ date: formattedDate })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    amountDisplay.textContent = `₹${data.total}`;
-                    if (data.total != 0.00) {
-                        updateBillwiseReport(data.report)
-                    }
-                } else {
-                    showError("dayReportError", data.message);
-                }
-                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
-            })
-            .catch(error => {
-                showError("dayReportError", "Error fetching data. Please check your connection.");
-                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
+            let dailyReceipts = receipts.filter(r => {
+                let d = new Date(r.timestamp);
+                return d >= selectedDate && d < nextDate;
             });
+
+            let totalAmount = 0;
+            let totalItems = 0;
+            let reportList = [];
+            dailyReceipts.forEach(order => {
+                reportList.push({
+                    bill_no: order.id,
+                    items: parseFloat(order.total_quantity).toFixed(2),
+                    tax: '0.00',
+                    discount: '0.00',
+                    amount: parseFloat(order.total).toFixed(2),
+                });
+                totalAmount += parseFloat(order.total);
+                totalItems += parseFloat(order.total_quantity);
+            });
+
+            let report = {
+                list: reportList,
+                total: {
+                    items: totalItems.toFixed(2),
+                    amount: totalAmount.toFixed(2),
+                    tax: '0.00',
+                    discount: '0.00'
+                }
+            };
+
+            amountDisplay.textContent = `₹${totalAmount.toFixed(2)}`;
+            if (totalAmount != 0.00) {
+                updateBillwiseReport(report);
+            }
+            document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
         }
 
         function printDayReport() {
-            document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = true);
-            hideMessage("dayReportError");
-            hideMessage("dayReportSuccess");
-            let selectedDate = document.getElementById("dateInput").value;
-            let amountDisplay = document.getElementById("amountDisplay");
-            amountDisplay.textContent = "-";
-
-            if (!selectedDate) {
-                showError("dayReportError", "Please select a date.");
-                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
-                return;
-            }
-
-            let formattedDate = selectedDate;
-
-            fetch("/print-day-report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ date: formattedDate })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage("dayReportSuccess", "Report generated.");
-                } else {
-                    showError("dayReportError", data.message);
-                }
-                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
-            })
-            .catch(error => {
-                showError("dayReportError", "Error fetching data. Please check your connection.");
-                document.querySelectorAll("#reportModal .btn").forEach(btn => btn.disabled = false);
-            });
+            // Printing directly disabled due to localStorage architecture.
+            showMessage("dayReportSuccess", "Report printing not supported in local storage mode.");
         }
 
         let items = [];
@@ -652,8 +647,8 @@
         let inputId = "";
 
         async function loadItems() {
-            const response = await fetch("/get-items-list");
-            items = await response.json();
+            const storedItems = localStorage.getItem("items");
+            items = storedItems ? JSON.parse(storedItems) : [];
             updateHelpPopup();
         }
 
@@ -834,19 +829,53 @@
                     const customerName = document.getElementById("customerName").value;
                     const mobile = document.getElementById("mobile").value;
                     hideError("orderError");
-                    fetch("/save_order", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ 'items':order, sellerCode, customerName, mobile })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.order_id) {
-                            window.location.href = '/bill/' + data.order_id;
-                        } else {
-                            window.location.reload();
-                        }
+                    
+                    let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+                    let maxId = receipts.reduce((max, r) => Math.max(max, r.id || 0), 0);
+                    let newOrderId = maxId + 1;
+                    
+                    let total = 0;
+                    let total_quantity = 0;
+                    let item_data = [];
+                    order.forEach(item => {
+                        total += item.price * item.quantity;
+                        total_quantity += item.quantity;
+                        let itemObj = items.find(i => i.id == item.id);
+                        let suffix = itemObj && itemObj.suffix ? itemObj.suffix : '';
+                        item_data.push({
+                            id: item.id,
+                            name: item.name,
+                            quantity: item.quantity + ' ' + suffix,
+                            price: item.price.toFixed(2),
+                            total: item.total.toFixed(2)
+                        });
                     });
+                    
+                    let subtotal = (total / 105) * 100;
+                    subtotal = Math.round(subtotal * 100) / 100;
+                    let tax = total - subtotal;
+                    let cgst = tax / 2;
+                    let sgst = tax / 2;
+                    
+                    let newReceipt = {
+                        id: newOrderId,
+                        seller_code: sellerCode,
+                        customer_name: customerName,
+                        mobile: mobile,
+                        items: item_data,
+                        subtotal: subtotal.toFixed(2),
+                        cgst: cgst.toFixed(2),
+                        sgst: sgst.toFixed(2),
+                        tax: tax.toFixed(2),
+                        total: total.toFixed(2),
+                        total_quantity: total_quantity,
+                        timestamp: new Date().toISOString()
+                    };
+                    
+                    receipts.push(newReceipt);
+                    localStorage.setItem('receipts', JSON.stringify(receipts));
+                    
+                    window.location.href = '/bill/' + newOrderId;
                 }
             }
         }

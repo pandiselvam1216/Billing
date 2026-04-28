@@ -120,29 +120,23 @@
     function save(e) {
         e.preventDefault();
         document.querySelectorAll(".btn").forEach(btn => btn.disabled = true);
-        const name = document.getElementById("name").value;
+        const name = document.getElementById("name").value.trim();
         if (name == "") {
             showMessage("error", "Please enter name.");
             document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
         } else {
-            fetch("/add_item", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 'name':name })
-            })
-            .then(response => response.json().then(data => ({ status: response.status, body: data })))
-            .then(result => {
-                if (result.status != 200) {
-                    showMessage('error', result.body.message);
-                    document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
-                } else {
-                    window.location.href = "/items";
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
+            hideMessage("error");
+            let items = JSON.parse(localStorage.getItem('items')) || [];
+            if (items.find(i => i.name.toLowerCase() === name.toLowerCase())) {
+                showMessage("error", "Item with this name already exists!");
                 document.querySelectorAll(".btn").forEach(btn => btn.disabled = false);
-            });
+            } else {
+                let maxId = items.reduce((max, i) => Math.max(max, i.id || 0), 0);
+                let newItem = { id: maxId + 1, item_number: maxId + 1, name: name, suffix: "" };
+                items.push(newItem);
+                localStorage.setItem('items', JSON.stringify(items));
+                window.location.href = "/items";
+            }
         }
     }
 </script>

@@ -179,18 +179,18 @@
             </table>
             <table style="width: 100%;">
                 <tr>
-                    <td style="text-align: left; font-size: 13px;"><span><strong>BILL NO:</strong> {{ receipt.order_id }}</span></td>
+                    <td style="text-align: left; font-size: 13px;"><span><strong>BILL NO:</strong> <span id="r_order_id"></span></span></td>
                 </tr>
             </table>
             <table style="width: 100%;">
                 <tr>
-                    <td style="text-align: left; font-size: 13px;"><strong>DATE:</strong> {{ receipt.date }}</td>
-                    <td style="text-align: right; font-size: 13px;"><span><strong>TIME:</strong> {{ receipt.time }}</span></td>
+                    <td style="text-align: left; font-size: 13px;"><strong>DATE:</strong> <span id="r_date"></span></td>
+                    <td style="text-align: right; font-size: 13px;"><span><strong>TIME:</strong> <span id="r_time"></span></span></td>
                 </tr>
             </table>
             <table style="width: 100%;">
                 <tr>
-                    <td style="text-align: left; font-size: 13px;"><span><strong>{{ receipt.seller_code }}</strong></span></td>
+                    <td style="text-align: left; font-size: 13px;"><span><strong id="r_seller_code"></strong></span></td>
                 </tr>
             </table>
         </div>
@@ -205,16 +205,7 @@
                     <th class="amount-col">AMOUNT</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for item in receipt['items'] %}
-                <tr>
-                    <td class="si-col">{{ loop.index }}</td>
-                    <td class="item-col">{{ item.name }}</td>
-                    <td class="qty-col">{{ item.quantity }}</td>
-                    <td class="rate-col price">{{ item.price }}</td>
-                    <td class="amount-col price">{{ item.total }}</td>
-                </tr>
-                {% endfor %}
+            <tbody id="billItemsBody">
             </tbody>
         </table>
         <hr>
@@ -224,8 +215,8 @@
         </div> -->
         <table style="width: 100%;">
             <tr>
-                <td style="text-align: left; font-size: 14px;"><span>TOTAL ITEM(S):{{ receipt.total_items }}/QTY:{{ receipt.total_quantity }}</span></td>
-                <td style="text-align: right; font-size: 14px;"><span><strong>₹ {{ receipt.total }}</strong></span></td>
+                <td style="text-align: left; font-size: 14px;"><span>TOTAL ITEM(S):<span id="r_total_items"></span>/QTY:<span id="r_total_quantity"></span></span></td>
+                <td style="text-align: right; font-size: 14px;"><span><strong>₹ <span class="r_total"></span></strong></span></td>
             </tr>
         </table>
         <hr>
@@ -249,10 +240,10 @@
                 </tr>
                 <tr>
                     <td class="tax-col">5.00</td>
-                    <td class="taxable-val-col">{{ receipt.subtotal }}</td>
-                    <td class="cgst-col">{{ receipt.cgst }}</td>
-                    <td class="sgst-col">{{ receipt.sgst }}</td>
-                    <td class="tax-amount-col">{{ receipt.tax }}</td>
+                    <td class="taxable-val-col" id="r_subtotal"></td>
+                    <td class="cgst-col" id="r_cgst"></td>
+                    <td class="sgst-col" id="r_sgst"></td>
+                    <td class="tax-amount-col" id="r_tax"></td>
                 </tr>
             </tbody>
         </table>
@@ -260,7 +251,7 @@
         <table style="width: 100%;">
             <tr>
                 <td style="text-align: left; font-size: 18px;"><strong>TOTAL:</strong></td>
-                <td style="text-align: right; font-size: 18px;"><strong>₹ {{ receipt.total }}</strong></td>
+                <td style="text-align: right; font-size: 18px;"><strong>₹ <span class="r_total"></span></strong></td>
             </tr>
         </table>
         <hr>
@@ -269,5 +260,51 @@
         <p class="smaller-font" style="text-align: center;">COLOUR AND PRINT NO GUARANTEE</p>
         <p class="smaller-font" style="text-align: center;">THANK YOU, VISIT AGAIN</p>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let orderId = "{{ order_id }}";
+            let receipts = JSON.parse(localStorage.getItem('receipts')) || [];
+            let receipt = receipts.find(r => r.id == orderId);
+            
+            if (!receipt) {
+                document.body.innerHTML = "<h2 style='text-align:center;'>Receipt not found</h2>";
+                return;
+            }
+
+            let d = new Date(receipt.timestamp);
+            let dateStr = ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + String(d.getFullYear()).slice(-2);
+            let timeStr = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+
+            document.getElementById("r_order_id").innerText = receipt.id;
+            document.getElementById("r_date").innerText = dateStr;
+            document.getElementById("r_time").innerText = timeStr;
+            document.getElementById("r_seller_code").innerText = receipt.seller_code || "";
+            document.getElementById("r_total_items").innerText = receipt.items.length;
+            document.getElementById("r_total_quantity").innerText = receipt.total_quantity;
+            
+            let totalEls = document.querySelectorAll(".r_total");
+            totalEls.forEach(el => el.innerText = receipt.total);
+
+            document.getElementById("r_subtotal").innerText = receipt.subtotal;
+            document.getElementById("r_cgst").innerText = receipt.cgst;
+            document.getElementById("r_sgst").innerText = receipt.sgst;
+            document.getElementById("r_tax").innerText = receipt.tax;
+
+            let tbody = document.getElementById("billItemsBody");
+            tbody.innerHTML = receipt.items.map((item, index) => `
+                <tr>
+                    <td class="si-col">${index + 1}</td>
+                    <td class="item-col">${item.name}</td>
+                    <td class="qty-col">${item.quantity}</td>
+                    <td class="rate-col price">${item.price}</td>
+                    <td class="amount-col price">${item.total}</td>
+                </tr>
+            `).join('');
+            
+            // Auto print and back
+            setTimeout(() => { window.print(); }, 500);
+            setTimeout(() => { window.location.href = "/"; }, 2000);
+        });
+    </script>
 </body>
 </html>
