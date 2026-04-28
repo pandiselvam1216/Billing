@@ -6,14 +6,9 @@ import requests
 from datetime import datetime, timedelta
 from babel.numbers import format_currency
 # from flask_cors import CORS
-import win32print
-# from PyQt6.QtCore import QUrl
-# from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-# from PyQt6.QtWebEngineWidgets import QWebEngineView
 import sys
-import webbrowser
 import time
-import pyautogui
+# Windows specific modules (win32print, pyautogui, webbrowser) removed for Vercel deployment
 from flask_migrate import Migrate
 
 app = Flask(__name__)
@@ -281,76 +276,8 @@ def print_receipt(order_id):
         "total_quantity": order.total_quantity,
     }
     # Printer Setup
-    # Printer Setup
-    printer_name = win32print.GetDefaultPrinter()
-    hprinter = win32print.OpenPrinter(printer_name)
-    hprinter_dc = win32print.StartDocPrinter(hprinter, 1, ("Receipt", None, "RAW"))
-    win32print.StartPagePrinter(hprinter)
-
-    # Print Header
-    win32print.WritePrinter(hprinter, LF)
-    win32print.WritePrinter(hprinter, CENTER + DOUBLE_SIZE_ON + b"PAKEEZA COLLECTION" + DOUBLE_SIZE_OFF + LF)
-    win32print.WritePrinter(hprinter, b"18, 1st Cross Rd" + LF)
-    win32print.WritePrinter(hprinter, b"Old Gurappanapalya" + LF)
-    win32print.WritePrinter(hprinter, b"Jayanagara 9th block" + LF)
-    win32print.WritePrinter(hprinter, b"S.G. Palya, Bengaluru 560029" + LF)
-    win32print.WritePrinter(hprinter, LF)
-    win32print.WritePrinter(hprinter, LEFT + b"MOBILE:8431795196" + LF)
-    win32print.WritePrinter(hprinter, b"GSTIN:290IWPS3898Q1Z3" + LF)
-    # win32print.WritePrinter(hprinter, f'BILL NO: {receipt_data['order_id']}' + LF)
-    win32print.WritePrinter(hprinter, f"BILL NO:{receipt_data['order_id']}".encode() + LF)
-    # win32print.WritePrinter(hprinter, f"BILL NO: {str(receipt_data['order_id'])}".encode() + LF)
-    win32print.WritePrinter(hprinter, f"DATE:{receipt_data['date']}".encode() + b' ' * 24 + b"TIME:" + f"{receipt_data['time']}".encode() + LF)
-    win32print.WritePrinter(hprinter, receipt_data['seller_code'].encode() + LF)
-
-    win32print.WritePrinter(hprinter, LEFT + b'-' * 48 + LF)
-
-    # Print Table Header
-    win32print.WritePrinter(hprinter, LEFT + BOLD_ON + b"SI	ITEM NAME	QTY	RATE	AMOUNT" + BOLD_OFF + LF)
-    win32print.WritePrinter(hprinter, LEFT + b'-' * 48 + LF)
-
-    # Print Table Items
-    win32print.WritePrinter(hprinter, LEFT)
-    for no, item in enumerate(receipt_data['items'], start=1):
-        item_name, qty, rate, amount = item['name'], float(item['quantity']), float(item['price']), float(item['total'])
-        item_line = f"{no:>2}  {item_name[:17]:<17} {qty:>5.2f} {rate:>8.2f} {amount:>10.2f}"
-        win32print.WritePrinter(hprinter, item_line.encode() + LF)
-
-    win32print.WritePrinter(hprinter, LEFT + b'-' * 48 + LF)
-
-    # Print Total
-    item_line = f"TOTAL ITEM(S):{receipt_data['total_items']:>2}/QTY:{receipt_data['total_quantity']:<5}           {receipt_data['total']:>10.2f}"
-    win32print.WritePrinter(hprinter, item_line.encode() + LF)
-
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-
-    # Print taxes
-    win32print.WritePrinter(hprinter, BOLD_ON + b"TAX %    TAXABLE VAL   CGST   SGST   TAX AMOUNT" + BOLD_OFF + LF)
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-    win32print.WritePrinter(hprinter, b"                     (2.50%) (2.50%)" + LF)
-    item_line = f"{5.00:<4.2f}     {receipt_data['subtotal']:>10.2f}   {receipt_data['cgst']:>5.2f}  {receipt_data['sgst']:>5.2f}    {receipt_data['tax']:>7.2f}"
-    win32print.WritePrinter(hprinter, item_line.encode() + LF)
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-    # Print final
-    item_line = f"TOTAL:                          {receipt_data['total']:>15.2f}"
-    win32print.WritePrinter(hprinter, BOLD_ON + item_line.encode() + BOLD_OFF + LF)
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-    # Print Footer Notes
-    win32print.WritePrinter(hprinter, CENTER + b"NOTE: AFTER CUTTING NO EXCHANGE" + LF)
-    win32print.WritePrinter(hprinter, b"COTTON AND LINEN CLOTH WASH BEFORE STITCH" + LF)
-    win32print.WritePrinter(hprinter, b"COLOUR AND PRINT NO GUARANTEE" + LF)
-    win32print.WritePrinter(hprinter, b"THANK YOU, VISIT AGAIN" + LF)
-
-    # Cut Paper
-    win32print.WritePrinter(hprinter, CUT)
-
-    # End Printing
-    win32print.EndPagePrinter(hprinter)
-    win32print.EndDocPrinter(hprinter)
-    win32print.ClosePrinter(hprinter)
+    # Printer Setup removed for Vercel deployment. (Cannot use win32print on Linux serverless)
+    pass
 
 
 @app.route("/get-day-report", methods=["POST"])
@@ -451,57 +378,8 @@ def print_day_report():
     report_data['total']['items'] = report_data['total']['items']
     report_data['total']['amount'] = report_data['total']['amount']
 
-    # Printer Setup
-    printer_name = win32print.GetDefaultPrinter()
-    hprinter = win32print.OpenPrinter(printer_name)
-    hprinter_dc = win32print.StartDocPrinter(hprinter, 1, ("Receipt", None, "RAW"))
-    win32print.StartPagePrinter(hprinter)
-
-    # Print Header
-    win32print.WritePrinter(hprinter, LF)
-    win32print.WritePrinter(hprinter, CENTER + DOUBLE_SIZE_ON + b"PAKEEZA COLLECTION" + DOUBLE_SIZE_OFF + LF)
-    win32print.WritePrinter(hprinter, b"18, 1st Cross Rd" + LF)
-    win32print.WritePrinter(hprinter, b"Old Gurappanapalya" + LF)
-    win32print.WritePrinter(hprinter, b"Jayanagara 9th block" + LF)
-    win32print.WritePrinter(hprinter, b"S.G. Palya, Bengaluru 560029" + LF)
-    win32print.WritePrinter(hprinter, LF)
-    win32print.WritePrinter(hprinter, BOLD_ON + b"BILLWISE REPORT" + BOLD_OFF + LF)
-    win32print.WritePrinter(hprinter, LF)
-    win32print.WritePrinter(hprinter, LEFT + f"PRESENT DATE:{report_data['current_date']}".encode() + b' ' * 17 + f"TIME:{report_data['current_time']}".encode() + LF)
-    win32print.WritePrinter(hprinter, f"REPORT DATE :{report_data['report_date']}".encode() + LF)
-
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-    # Print Table Header
-    win32print.WritePrinter(hprinter, BOLD_ON + b"BLNO       ITEMS    TAX    DISC          AMOUNT" + BOLD_OFF + LF)
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-    # Print Table Items
-    # win32print.WritePrinter(hprinter, LEFT)
-    for item in report_data['list']:
-        bill_no, items, tax, discount, amount = item['bill_no'], item['items'], item['tax'], item['discount'], item['amount']
-        # Format item line to match PDF spacing
-        item_line = f"{bill_no:<6}   {items:>8.2f}   {tax}   {discount}    {amount:>12.2f}"
-        win32print.WritePrinter(hprinter, item_line.encode() + LF)
-    win32print.WritePrinter(hprinter, LEFT + b'-' * 48 + LF)
-
-    # # Print Total
-    item_line = f"TOTAL:{report_data['total']['items']:>11.2f}   0.00   0.00{report_data['total']['amount']:>16.2f}"
-    win32print.WritePrinter(hprinter, item_line.encode() + LF)
-
-    win32print.WritePrinter(hprinter, b'-' * 48 + LF)
-
-    # Print Footer Notes
-    win32print.WritePrinter(hprinter, b"NOTE: TAX AMOUNT INCLUDES OTHER CHARGES" + LF)
-    win32print.WritePrinter(hprinter, b"NOTE: -VE VALUES INDICATE RETURN BILL" + LF)
-
-    # Cut Paper
-    win32print.WritePrinter(hprinter, CUT)
-
-    # End Printing
-    win32print.EndPagePrinter(hprinter)
-    win32print.EndDocPrinter(hprinter)
-    win32print.ClosePrinter(hprinter)
+    # Printer Setup removed for Vercel deployment.
+    pass
     return jsonify({
         "success": True
     }), 200
@@ -543,30 +421,8 @@ def search_customer():
 #     sys.exit(app.exec())
 
 
-def open_browser():
-    webbrowser.open_new("http://localhost:5000/")
-    time.sleep(2)  # Wait for the browser to open
-    pyautogui.hotkey('ctrl', 'l')  # Focus the browser window (optional)
-    pyautogui.hotkey('f11')
-
-def is_flask_running():
-    try:
-        response = requests.get("http://localhost:5000/")
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        return False
-
-
-#  Function to start the Flask app
-def start_flask():
-     app.run(debug=False, use_reloader=False)
-
 if __name__ == "__main__":
-    if not is_flask_running():
-        threading.Timer(1.25, open_browser).start()  # Open the browser after 1.25 seconds
-        start_flask()
-    else:
-        threading.Timer(1.25, open_browser).start()
+    app.run(debug=False)
 
 # if __name__ == "__main__":
 #     app.run(debug=True)
